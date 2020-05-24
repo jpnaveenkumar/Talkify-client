@@ -1,5 +1,5 @@
 //const config = process.env
-var baseURL = "http://192.168.43.179:3000"
+var baseURL = "http://localhost:3000"
 function generateURLwithParams(path,params){
     path = path + "?";
     var paramKeys = Object.keys(params);

@@ -1,7 +1,8 @@
 <template>
   <div>
     <div class="message-container">
-      {{message}}
+      {{message.senderName}}
+      {{message.message}}
     </div>
   </div>  
 </template>

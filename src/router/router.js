@@ -3,6 +3,7 @@ import Home from '../views/Home.vue';
 import Chat from '../views/chat.vue';
 import ErrorPage from '../views/ErrorPage.vue';
 const router = new VueRouter({
+    mode: 'history',
     routes:[
         {
             path: '/',
@@ -11,6 +12,12 @@ const router = new VueRouter({
         {
             path: '/chat/:channel',
             name: 'chat',
+            props: true,
+            component: Chat
+        },
+        {
+            path: '/chat/:channel/:userId',
+            name: 'chatWithAllParams',
             props: true,
             component: Chat
         },

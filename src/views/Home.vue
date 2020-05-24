@@ -37,37 +37,56 @@ export default {
   },
   methods: {
       create: function(){
+        if(this.userName == "" || this.channelName == ""){
+          this.$toast.error("Kindly Enter Username or Password");
+          return;
+        }
           createChannel(this.userName,this.channelName).then((data)=>{
             this.$toast.success(data.message);
             var self = this;
-                setTimeout(function(){
-                    self.$router.push({ name: 'chat', params: { 
-                    channel: self.channelName,
-                    username: self.userName,
-                    userId: data.userId
-                }});
+              setTimeout(function(){
+                self.$router.push({ 
+                name: 'chatWithAllParams', 
+                params: { 
+                  channel: self.channelName,
+                  userId: data.userId
+                },
+                query: {
+                  username: self.userName
+                }
+              });
             },2000);
           },(err)=>{
               this.$toast.error(err.message);
           });
       },
       join: function(){
-          joinChannel(this.userName,this.channelName).then((data)=>{
-            this.$toast.success(data.message);
-            var self = this;
-                setTimeout(function(){
-                    self.$router.push({ name: 'chat', params: { 
-                    channel: self.channelName,
-                    username: self.userName,
-                    userId: data.userId
-                }});
-            },2000);
-          },(err)=>{
-              this.$toast.error(err.message);
-          });
+        if(this.userName == "" || this.channelName == ""){
+          this.$toast.error("Kindly Enter Username or Password");
+          return;
+        }
+        joinChannel(this.userName,this.channelName).then((data)=>{
+          this.$toast.success(data.message);
+          var self = this;
+          setTimeout(function(){
+            self.$router.push({ 
+              name: 'chatWithAllParams', 
+              params: { 
+                channel: self.channelName,
+                userId: data.userId
+              },
+              query: {
+                username: self.userName
+              }
+            });
+          },2000);
+        },(err)=>{
+            this.$toast.error(err.message);
+        });
       }
   },
   mounted(){
+    window.mine1 = this;
   }
 }
 </script>

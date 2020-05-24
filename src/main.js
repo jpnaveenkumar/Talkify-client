@@ -6,7 +6,7 @@ import VueToast from 'vue-toast-notification';
 import 'vue-toast-notification/dist/theme-default.css';
 Vue.use(VueToast,{
   position: 'top',
-  duration: 3000
+  duration: 2000
 });
 
 Vue.config.productionTip = false
