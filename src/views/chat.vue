@@ -4,8 +4,13 @@
            <div>
                Channel : {{channel}}
            </div>
-           <div>
-               Connection Status : {{connectionStatus}}
+           <div class="chat-connection"> 
+               Connection Status :
+               <div class="connection-status"> 
+                    {{connectionStatus}}
+                    <div class="green-ball" v-if="connectionStatus == 'CONNECTED'"></div>
+                    <div class="red-ball" v-if="connectionStatus == 'NOT_CONNECTED'"></div>
+                </div>
            </div>
            <div>
                Username : {{userName}}
@@ -15,7 +20,7 @@
            </div>
         </div>
         <div class="input-container">
-            <textarea type="text"  v-model="message" placeholder="Type Something here ....."></textarea>
+            <textarea type="text" spellcheck="false" v-model="message" placeholder="Type Something here ....."></textarea>
         </div>
         <div class="btn-container">
             <div  @click="sendMessage" class="send-btn">
@@ -24,7 +29,9 @@
             </div>
         </div>
         <div class="chatWindow">
-            <Message v-for="(chatMessage,index) in chatMessages" :key="index" v-bind:message="chatMessage"></Message>
+            <div class="chat-box">
+                <Message v-for="(chatMessage,index) in chatMessages" :key="index" v-bind:message="chatMessage"></Message>
+            </div>
         </div>
     </div>    
 </template>
@@ -60,6 +67,7 @@ export default {
             this.ws.send(JSON.stringify(obj));
         },
         handleChatResponse: function(received_msg) {
+            this.message = "";
             var obj = {}
             obj["message"] = received_msg["message"];
             obj["senderName"] = received_msg["sender_name"];
@@ -129,13 +137,43 @@ export default {
 <style lang="scss" scoped>
 
 .chat-container{
-    margin:10px;
+    padding: 10px;
+    min-height: 97vh;
+    background-color: #cdcdcd29;
     .chat-legend{
-        font-size: 18px;
+        font-size: 15px;
+        font-family: sans-serif;
         font-weight: bold;
         display: flex;
         flex-wrap: wrap;
         justify-content: space-evenly;
+        margin-top:10px;
+        margin-bottom: 15px;
+        .chat-connection{
+            display: flex;
+            align-items: center;
+            .connection-status{
+                display:flex;
+                align-items: center;
+                flex-direction: row-reverse;
+                .green-ball{
+                    height: 15px;
+                    width: 15px;
+                    background-color: rgb(85, 243, 85);
+                    border-radius: 10px;
+                    margin: 5px;
+                    position: relative;
+                }
+                .red-ball{
+                    height: 15px;
+                    width: 15px;
+                    background-color: red;
+                    border-radius: 10px;
+                    margin: 5px;
+                    position: relative;
+                }
+            }
+        }
     }
     .input-container{
         margin:10px;
@@ -151,6 +189,11 @@ export default {
             max-height: 100px;
             min-width: 50%;
             max-width: 97%;
+            padding-left: 14px;
+            padding-top: 14px;
+            font-family: sans-serif;
+            font-size: 16px;
+            font-weight: bold;
         }
         textarea:focus{
             outline: none;
@@ -160,6 +203,8 @@ export default {
         display: flex;
         justify-content: center;
         width: inherit;
+        margin-top:20px;
+        height: 30px;
         .send-btn{
             padding:5px 20px 5px 20px;
             border-radius:5px;
@@ -167,15 +212,27 @@ export default {
             color:white;
             background-color: #4d57cd;
             font-weight: bold;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
             .send-icon{
                 position: relative;
-                top: 3px;
-                left: 3px;
+                left: 5px;
             }
         }
     }
     .chatWindow{
         margin:10px;
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        .chat-box{
+            width: 80%;
+            @media (max-width: 450px) {
+                width: 90%;
+            }
+        }
     }
 }
 </style>
