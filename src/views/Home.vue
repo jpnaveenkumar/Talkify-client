@@ -126,10 +126,10 @@ input{
         text-align: center;
         }
         .username-container{
-        margin:10px;
+          margin:10px;
         }
         .channel-container{
-        margin:20px 10px 10px 10px;
+          margin:20px 10px 10px 10px;
         }
         .button-container{
             display: flex;

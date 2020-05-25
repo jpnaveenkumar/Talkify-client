@@ -1,31 +1,35 @@
 <template>
     <div class="chat-container">
-        <div class="chat-legend">
-           <div>
-               Channel : {{channel}}
-           </div>
-           <div class="chat-connection"> 
-               Connection Status :
-               <div class="connection-status"> 
-                    {{connectionStatus}}
-                    <div class="green-ball" v-if="connectionStatus == 'CONNECTED'"></div>
-                    <div class="red-ball" v-if="connectionStatus == 'NOT_CONNECTED'"></div>
+        <AddUser v-if="showAddUser" @setUserName="setUserName"></AddUser>
+        <div class="upper-half">
+            <div class="chat-legend">
+            <div class="channel-name">
+                Channel : {{channel}}
+            </div>
+            <div class="chat-connection"> 
+                Connection Status :
+                <div class="connection-status"> 
+                        {{connectionStatus}}
+                        <div class="green-ball" v-if="connectionStatus == 'CONNECTED'"></div>
+                        <div class="red-ball" v-if="connectionStatus == 'NOT_CONNECTED'"></div>
+                        <div class="blue-ball" v-if="connectionStatus == 'ESTABLISHING_CONNECTION'"></div>
+                    </div>
+            </div>
+            <div  v-if="userName" class="user-name">
+                Username : {{userName}}
+            </div>
+            <div class="chat-anonyous">
+                <input type="checkbox" v-model="chatAnonymous"> Chat Anonymous
+            </div>
+            </div>
+            <div class="input-container">
+                <textarea type="text" spellcheck="false" v-model="message" placeholder="Type Something here ....."></textarea>
+            </div>
+            <div class="btn-container">
+                <div  @click="sendMessage" class="send-btn">
+                    Send
+                    <img class="send-icon" src="../assets/send.svg">
                 </div>
-           </div>
-           <div>
-               Username : {{userName}}
-           </div>
-           <div>
-               Chat Anonymous : false
-           </div>
-        </div>
-        <div class="input-container">
-            <textarea type="text" spellcheck="false" v-model="message" placeholder="Type Something here ....."></textarea>
-        </div>
-        <div class="btn-container">
-            <div  @click="sendMessage" class="send-btn">
-                Send
-                <img class="send-icon" src="../assets/send.svg">
             </div>
         </div>
         <div class="chatWindow">
@@ -37,7 +41,9 @@
 </template>
 <script>
 import {getChannelInfo} from '../service/chat';
+import {joinChannel} from '../service/home';
 import Message from '../components/Message.vue';
+import AddUser from '../components/AddUser.vue';
 export default {
     name: 'chat',
     data(){
@@ -48,23 +54,27 @@ export default {
             senderId: '',
             channelName: '',
             userName: '',
-            connectionStatus: 'NOT_CONNECTED'
+            connectionStatus: 'NOT_CONNECTED',
+            chatAnonymous: false,
+            showAddUser: false
         }
     },
     props: ['channel','userId'],
-    components : { Message },
+    components : { Message, AddUser },
     methods: {
         sendMessage: function() {
-            console.log("sent");
             var message = this.message;
             if(message == ""){
+                this.$toast.error("Type Something....");
                 return;
             }
             var obj = {};
             obj["senderId"] = this.senderId;
             obj["message"] = message;
             obj["channelName"] = this.channelName;
+            obj["isAnonymous"] = this.chatAnonymous;
             this.ws.send(JSON.stringify(obj));
+            console.log("sent");
         },
         handleChatResponse: function(received_msg) {
             this.message = "";
@@ -72,6 +82,10 @@ export default {
             obj["message"] = received_msg["message"];
             obj["senderName"] = received_msg["sender_name"];
             this.chatMessages.push(obj);
+            var chatWindowReference = document.getElementsByClassName("chatWindow")[0];
+            setTimeout(function(){
+                chatWindowReference.scrollTop = chatWindowReference.scrollHeight;
+            },300); 
         },
         establishWebSocket: function () {
                console.log("connecting....");
@@ -86,7 +100,11 @@ export default {
                   var received_msg = evt.data;
                   received_msg = JSON.parse(received_msg);
                   if(received_msg["status"] != 200){
-                      this.$toast.error(received_msg["message"]);
+                      console.log(received_msg);
+                      self.$toast.error(received_msg["message"]);
+                      setTimeout(function(){
+                        self.$router.push({ path: '/error-page'});
+                      },2000);
                       return;
                   }
                   if(received_msg["message_type"]  == "Connection_Status"){
@@ -101,13 +119,49 @@ export default {
                   console.log("Connection is closed..."); 
                };
         },
+        join: function(){
+        if(this.userName == "" || this.channelName == ""){
+          return;
+        }
+        joinChannel(this.userName,this.channelName).then((data)=>{
+            this.$toast.success(data.message);
+            this.senderId = data.userId;
+            var self = this;
+            setTimeout(function(){
+                self.$router.push({ 
+                name: 'chatWithAllParams', 
+                params: { 
+                    channel: self.channelName,
+                    userId: data.userId
+                },
+                query: {
+                    username: self.userName
+                }
+                });
+                self.establishWebSocket();
+            },2000);
+            },(err)=>{
+                this.$toast.error(err.message);
+            });
+        },
+        setUserName(username)
+        {
+            console.log(username);
+            this.userName = username;
+            this.showAddUser = false;
+            this.join();
+        },
         validation: function(){
             var params = {
                 channel : this.channelName
             }
             getChannelInfo(params).then((data)=>{
                 console.log(data);
-                this.establishWebSocket();
+                if(this.userName){
+                    this.establishWebSocket();
+                }else{
+                    this.showAddUser = true;
+                }
             },(err)=>{
                 console.log(err);
                 this.$router.push({ path: '/error-page'});
@@ -125,12 +179,17 @@ export default {
                 console.log("unloaded");
                 return confirm("Confirm refresh");
             };
+        },
+        computeChatWindowHeight: function(){
+            var chatWindowHeight = document.getElementsByClassName("chat-container")[0].scrollHeight - document.getElementsByClassName("upper-half")[0].scrollHeight - 75;
+            document.getElementsByClassName("chatWindow")[0].style.height = chatWindowHeight + "px";
         }
     },
     mounted() {
         this.initData();
         this.validation();
         this.registerWindowListeners();
+        this.computeChatWindowHeight();
     }
 }
 </script>
@@ -149,6 +208,10 @@ export default {
         justify-content: space-evenly;
         margin-top:10px;
         margin-bottom: 15px;
+        .channel-name{
+            display: flex;
+            align-items: center;
+        }
         .chat-connection{
             display: flex;
             align-items: center;
@@ -172,6 +235,24 @@ export default {
                     margin: 5px;
                     position: relative;
                 }
+                .blue-ball{
+                    height: 15px;
+                    width: 15px;
+                    background-color: blue;
+                    border-radius: 10px;
+                    margin: 5px;
+                    position: relative;
+                }
+            }
+        }
+        .user-name{
+            display: flex;
+            align-items: center;
+        }
+        .chat-anonyous{
+            input{
+                height: 15px;
+                width: 15px;
             }
         }
     }
@@ -223,10 +304,12 @@ export default {
         }
     }
     .chatWindow{
+        scroll-behavior: smooth;
         margin:10px;
         display: flex;
         justify-content: center;
         margin-top: 20px;
+        overflow-y: scroll;
         .chat-box{
             width: 80%;
             @media (max-width: 450px) {

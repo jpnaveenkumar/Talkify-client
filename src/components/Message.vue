@@ -71,6 +71,7 @@ export default {
     border: 2px solid #cdcdcd;
     border-bottom-right-radius: 20px !important;
     border-radius: 5px;
+    word-break: break-word;
   }
 }
 .message-container:hover{
