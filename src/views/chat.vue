@@ -40,7 +40,7 @@
     </div>    
 </template>
 <script>
-import {getChannelInfo} from '../service/chat';
+import {getChannelInfo, connectionTermination} from '../service/chat';
 import {joinChannel} from '../service/home';
 import Message from '../components/Message.vue';
 import AddUser from '../components/AddUser.vue';
@@ -87,9 +87,18 @@ export default {
                 chatWindowReference.scrollTop = chatWindowReference.scrollHeight;
             },300); 
         },
+        handleMemberStatus: function (received_msg) {
+            if(received_msg["action"] == "remove"){
+                this.$store.commit('DELETE_MEMBER',received_msg["userId"]);
+            }else if(received_msg["action"] == "add"){
+                if(this.senderId != received_msg["user"].userId){
+                    this.$store.commit('ADD_MEMBER',received_msg["user"]);
+                }
+            }
+        },
         establishWebSocket: function () {
                console.log("connecting....");
-               var ws = new WebSocket("ws://localhost:3000/channel/"+this.senderId+"/"+this.channelName);
+               var ws = new WebSocket("ws://192.168.0.106:3000/channel/"+this.senderId+"/"+this.channelName);
                this.ws = ws;
                var self = this;
                ws.onopen = function() {
@@ -109,8 +118,11 @@ export default {
                   }
                   if(received_msg["message_type"]  == "Connection_Status"){
                       self.connectionStatus = "CONNECTED";
+                      self.$store.dispatch('GET_MEMBERS',self.channelName);
                   }else if(received_msg["message_type"]  == "Chat_Message"){
                       self.handleChatResponse(received_msg);
+                  }else if(received_msg["message_type"]  == "Member_Info"){
+                      self.handleMemberStatus(received_msg);
                   }
                   console.log("Message is received..."+received_msg);
                };
@@ -120,9 +132,9 @@ export default {
                };
         },
         join: function(){
-        if(this.userName == "" || this.channelName == ""){
-          return;
-        }
+            if(this.userName == "" || this.channelName == ""){
+            return;
+            }
         joinChannel(this.userName,this.channelName).then((data)=>{
             this.$toast.success(data.message);
             this.senderId = data.userId;
@@ -153,12 +165,17 @@ export default {
         },
         validation: function(){
             var params = {
-                channel : this.channelName
+                channel : this.channelName,
+                softCreate : sessionStorage.getItem("user") ? true : false 
             }
             getChannelInfo(params).then((data)=>{
                 console.log(data);
                 if(this.userName){
-                    this.establishWebSocket();
+                    if(sessionStorage.getItem("user")){ // handling page refresh case
+                        this.join();
+                    }else{
+                        this.establishWebSocket();
+                    }
                 }else{
                     this.showAddUser = true;
                 }
@@ -173,11 +190,14 @@ export default {
             this.senderId = this.userId;
         },
         registerWindowListeners: function(){
+            sessionStorage.setItem("user",this.userName);
             window.mine = this;
+            var self = this;
             window.onbeforeunload = function()
             {
                 console.log("unloaded");
-                return confirm("Confirm refresh");
+                confirm("Confirm refresh");
+                connectionTermination(self.channelName, self.senderId);
             };
         },
         computeChatWindowHeight: function(){
