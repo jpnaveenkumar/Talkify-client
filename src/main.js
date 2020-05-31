@@ -11,6 +11,8 @@ Vue.use(VueToast,{
 });
 
 Vue.config.productionTip = false
+window.talkify = {};
+window.talkify.store = store;
 Vue.use(VueRouter);
 new Vue({
   router,

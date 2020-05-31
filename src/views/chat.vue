@@ -1,5 +1,6 @@
 <template>
     <div class="chat-container">
+        <PrivateChat v-if="showPrivateChat" v-bind:receiverId="privateMessageReceiverId" @close="closePrivateChat" @send="sendPrivateMessage"></PrivateChat>
         <AddUser v-if="showAddUser" @setUserName="setUserName"></AddUser>
         <div class="upper-half">
             <div class="chat-legend">
@@ -32,18 +33,25 @@
                 </div>
             </div>
         </div>
-        <div class="chatWindow">
-            <div class="chat-box">
-                <Message v-for="(chatMessage,index) in chatMessages" :key="index" v-bind:message="chatMessage"></Message>
+        <div class="bottomHalf">
+            <div class="chatWindow">
+                <div class="chat-box">
+                    <Message v-for="(chatMessage,index) in chatMessages" :key="index" v-bind:message="chatMessage"></Message>
+                </div>
+            </div>
+            <div class="membersContainer">
+                <Members @openPrivateChat="openPrivateChat" v-bind:currentUser="senderId"></Members>
             </div>
         </div>
     </div>    
 </template>
 <script>
-import {getChannelInfo, connectionTermination} from '../service/chat';
+import {getChannelInfo, connectionTermination, privateMessage} from '../service/chat';
 import {joinChannel} from '../service/home';
+import PrivateChat from '../components/PrivateChat';
 import Message from '../components/Message.vue';
 import AddUser from '../components/AddUser.vue';
+import Members from '../components/Members.vue';
 export default {
     name: 'chat',
     data(){
@@ -56,12 +64,41 @@ export default {
             userName: '',
             connectionStatus: 'NOT_CONNECTED',
             chatAnonymous: false,
-            showAddUser: false
+            showAddUser: false,
+            showPrivateChat: false,
+            privateMessageReceiverId: undefined
         }
     },
     props: ['channel','userId'],
-    components : { Message, AddUser },
+    components : { Message, AddUser, Members, PrivateChat },
     methods: {
+        openPrivateChat: function(receiverId)
+        {
+            this.showPrivateChat = true;
+            this.privateMessageReceiverId = receiverId;
+        },
+        closePrivateChat: function()
+        {
+           this.showPrivateChat = false; 
+           this.privateMessageReceiverId = undefined;
+        },
+        sendPrivateMessage: function(receiverId,message){
+            var obj = {};
+            obj["senderId"] = this.senderId;
+            obj["receiverId"] = receiverId;
+            obj["message"] = message;
+            obj["channelName"] = this.channelName;
+            obj["isAnonymous"] = this.chatAnonymous;
+            this.closePrivateChat();
+            privateMessage(obj).then((data)=>{
+                console.log(data);
+                this.$toast.success("Message sent!!");
+            },(err)=>{
+                console.log(err);
+                this.$toast.error("Something went wrong!!");
+            });
+            console.log(obj);
+        },
         sendMessage: function() {
             var message = this.message;
             if(message == ""){
@@ -81,6 +118,8 @@ export default {
             var obj = {}
             obj["message"] = received_msg["message"];
             obj["senderName"] = received_msg["sender_name"];
+            obj["senderId"] = received_msg["senderId"];
+            obj["isPrivate"] = received_msg["isPrivate"];
             this.chatMessages.push(obj);
             var chatWindowReference = document.getElementsByClassName("chatWindow")[0];
             setTimeout(function(){
@@ -102,7 +141,7 @@ export default {
                this.ws = ws;
                var self = this;
                ws.onopen = function() {
-                   this.connectionStatus = 'ESTABLISHING_CONNECTION';
+                    self.connectionStatus = 'ESTABLISHING_CONNECTION';
                };
 				
                ws.onmessage = function (evt) { 
@@ -128,6 +167,7 @@ export default {
                };
 				
                ws.onclose = function() {
+                  self.connectionStatus = 'NOT_CONNECTED';
                   console.log("Connection is closed..."); 
                };
         },
@@ -323,18 +363,25 @@ export default {
             }
         }
     }
-    .chatWindow{
-        scroll-behavior: smooth;
-        margin:10px;
+    .bottomHalf{
         display: flex;
-        justify-content: center;
-        margin-top: 20px;
-        overflow-y: scroll;
-        .chat-box{
-            width: 80%;
-            @media (max-width: 450px) {
-                width: 90%;
+        .chatWindow{
+            scroll-behavior: smooth;
+            margin:10px;
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            overflow-y: scroll;
+            flex: 80%;
+            .chat-box{
+                width: 80%;
+                @media (max-width: 450px) {
+                    width: 90%;
+                }
             }
+        }
+        .membersContainer{
+            flex: 15%;
         }
     }
 }
