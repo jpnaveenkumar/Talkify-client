@@ -1,7 +1,11 @@
 <template>
     <div class="chat-container">
+        <MemberMobile  v-if="showMembersContainer" @copyData="copyData" @openPrivateChat="openPrivateChat" v-bind:currentUser="senderId" v-bind:windowHeight="chatWindowHeight" @close="closeMembersContainer"></MemberMobile>
         <PrivateChat v-if="showPrivateChat" v-bind:receiverId="privateMessageReceiverId" @close="closePrivateChat" @send="sendPrivateMessage"></PrivateChat>
         <AddUser v-if="showAddUser" @setUserName="setUserName"></AddUser>
+        <div  @click="openMembersContainer"  v-if="device != 'monitor'" class="floating-button">
+            <img src="../assets/settings.png" height="30">
+        </div>
         <div class="upper-half">
             <div class="chat-legend">
             <div class="channel-name">
@@ -39,7 +43,12 @@
                     <Message v-for="(chatMessage,index) in chatMessages" :key="index" v-bind:message="chatMessage"></Message>
                 </div>
             </div>
-            <div class="membersContainer">
+            <div  v-if="device == 'monitor'" class="membersContainer">
+                <p class="members"> Members </p>
+                <div class="shareChannel">
+                    <p>Share Channel</p>
+                    <img  class="share" @click="copyData" src="../assets/share.png" height="25px"/>
+                </div>
                 <Members @openPrivateChat="openPrivateChat" v-bind:currentUser="senderId"></Members>
             </div>
         </div>
@@ -52,10 +61,14 @@ import PrivateChat from '../components/PrivateChat';
 import Message from '../components/Message.vue';
 import AddUser from '../components/AddUser.vue';
 import Members from '../components/Members.vue';
+import MemberMobile from '../components/MemberMobile.vue';
 export default {
     name: 'chat',
     data(){
         return{
+            showMembersContainer: false,
+            chatWindowHeight: undefined,
+            device:undefined,
             ws: undefined,
             message: '',
             chatMessages : [],
@@ -70,8 +83,16 @@ export default {
         }
     },
     props: ['channel','userId'],
-    components : { Message, AddUser, Members, PrivateChat },
+    components : { Message, AddUser, Members, PrivateChat, MemberMobile },
     methods: {
+        openMembersContainer: function()
+        {
+            this.showMembersContainer = true;
+        },
+        closeMembersContainer: function()
+        {
+            this.showMembersContainer = false;
+        },
         openPrivateChat: function(receiverId)
         {
             this.showPrivateChat = true;
@@ -137,7 +158,7 @@ export default {
         },
         establishWebSocket: function () {
                console.log("connecting....");
-               var ws = new WebSocket("ws://192.168.0.106:3000/channel/"+this.senderId+"/"+this.channelName);
+               var ws = new WebSocket("ws://localhost:3000/channel/"+this.senderId+"/"+this.channelName);
                this.ws = ws;
                var self = this;
                ws.onopen = function() {
@@ -204,14 +225,15 @@ export default {
             this.join();
         },
         validation: function(){
+            let localUser = sessionStorage.getItem("user");
             var params = {
                 channel : this.channelName,
-                softCreate : sessionStorage.getItem("user") ? true : false 
+                softCreate : localUser ? true : false 
             }
             getChannelInfo(params).then((data)=>{
                 console.log(data);
                 if(this.userName){
-                    if(sessionStorage.getItem("user")){ // handling page refresh case
+                    if(localUser){ // handling page refresh case
                         this.join();
                     }else{
                         this.establishWebSocket();
@@ -230,7 +252,9 @@ export default {
             this.senderId = this.userId;
         },
         registerWindowListeners: function(){
-            sessionStorage.setItem("user",this.userName);
+            if(this.userName){
+                sessionStorage.setItem("user",this.userName);
+            }
             window.mine = this;
             var self = this;
             window.onbeforeunload = function()
@@ -241,11 +265,38 @@ export default {
             };
         },
         computeChatWindowHeight: function(){
-            var chatWindowHeight = document.getElementsByClassName("chat-container")[0].scrollHeight - document.getElementsByClassName("upper-half")[0].scrollHeight - 75;
-            document.getElementsByClassName("chatWindow")[0].style.height = chatWindowHeight + "px";
+            this.chatWindowHeight = document.getElementsByClassName("chat-container")[0].scrollHeight - document.getElementsByClassName("upper-half")[0].scrollHeight - 75;
+            document.getElementsByClassName("chatWindow")[0].style.height = this.chatWindowHeight + "px";
+            if(this.device == 'monitor'){
+                var self = this;
+                setTimeout(function(){
+                    console.log(this.chatWindowHeight);
+                    document.getElementsByClassName("membersContainer")[0].style.height = self.chatWindowHeight + "px";
+                },500);
+            }
+        },
+        copyData: function(){
+            var shareURL = "http://localhost:8080/chat/"+this.channelName;
+            this.$copyText(shareURL).then((data)=>{
+                console.log(data);
+                this.$toast.success("Chat URL copied to clipboard!!");
+            },(err)=>{
+                console.log("error",err);
+            });
+        },
+        detectDevice()
+        {
+            if(document.body.offsetWidth <= 500){
+                this.device = 'mobile';
+            } else if( document.body.offsetWidth < 800){
+                this.device = 'tablet'; 
+            } else {
+                this.device = 'monitor';
+            }
         }
     },
     mounted() {
+        this.detectDevice();
         this.initData();
         this.validation();
         this.registerWindowListeners();
@@ -256,6 +307,16 @@ export default {
 <style lang="scss" scoped>
 
 .chat-container{
+    .floating-button{
+        background-color: #4d57cd;
+        position: absolute;
+        bottom: 50px;
+        right: 50px;
+        border-radius: 30px;
+        padding: 7px;
+        padding-bottom: 3px;
+        cursor: pointer;
+    }
     padding: 10px;
     min-height: 97vh;
     background-color: #cdcdcd29;
@@ -380,8 +441,30 @@ export default {
                 }
             }
         }
+        .chatWindow::-webkit-scrollbar{
+            display: none;
+        }
+        .membersContainer::-webkit-scrollbar{
+            display: none;
+        }
         .membersContainer{
-            flex: 15%;
+            flex: 20%;
+            overflow-y: scroll;
+            .members{
+                display: flex;
+                justify-content: center;
+                font-weight: bold;
+                font-family: cursive;
+            }
+            .shareChannel{
+                align-items: center;
+                font-family: cursive;
+                display: flex;
+                justify-content: space-evenly;
+                .share{
+                    cursor: pointer;
+                }
+            }
         }
     }
 }

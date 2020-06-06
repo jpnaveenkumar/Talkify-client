@@ -59,6 +59,7 @@ export default {
         right: 6px;
         img{
             height: 25px;
+            cursor: pointer;
         }
     }
 }

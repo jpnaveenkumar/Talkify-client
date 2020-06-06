@@ -73,7 +73,7 @@ export default {
         padding-right: 55px;
         border-radius: 10px;
         box-shadow: 1px 1px 10px 10px #c3c1c1;
-        width: 25%;
+        width: 50%;
         height: fit-content;
         .closeChat{
             position: absolute;
