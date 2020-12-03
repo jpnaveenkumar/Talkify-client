@@ -45,9 +45,9 @@ export default {
             this.$toast.success(data.message);
             var self = this;
               setTimeout(function(){
-                self.$router.push({ 
-                name: 'chatWithAllParams', 
-                params: { 
+                self.$router.push({
+                name: 'chatWithAllParams',
+                params: {
                   channel: self.channelName,
                   userId: data.userId
                 },
@@ -69,9 +69,9 @@ export default {
           this.$toast.success(data.message);
           var self = this;
           setTimeout(function(){
-            self.$router.push({ 
-              name: 'chatWithAllParams', 
-              params: { 
+            self.$router.push({
+              name: 'chatWithAllParams',
+              params: {
                 channel: self.channelName,
                 userId: data.userId
               },

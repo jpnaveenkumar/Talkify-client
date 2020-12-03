@@ -11,9 +11,9 @@
             <div class="channel-name">
                 Channel : {{channel}}
             </div>
-            <div class="chat-connection"> 
+            <div class="chat-connection">
                 Connection Status :
-                <div class="connection-status"> 
+                <div class="connection-status">
                         {{connectionStatus}}
                         <div class="green-ball" v-if="connectionStatus == 'CONNECTED'"></div>
                         <div class="red-ball" v-if="connectionStatus == 'NOT_CONNECTED'"></div>
@@ -52,7 +52,7 @@
                 <Members @openPrivateChat="openPrivateChat" v-bind:currentUser="senderId"></Members>
             </div>
         </div>
-    </div>    
+    </div>
 </template>
 <script>
 import {getChannelInfo, connectionTermination, privateMessage} from '../service/chat';
@@ -100,7 +100,7 @@ export default {
         },
         closePrivateChat: function()
         {
-           this.showPrivateChat = false; 
+           this.showPrivateChat = false;
            this.privateMessageReceiverId = undefined;
         },
         sendPrivateMessage: function(receiverId,message){
@@ -145,7 +145,7 @@ export default {
             var chatWindowReference = document.getElementsByClassName("chatWindow")[0];
             setTimeout(function(){
                 chatWindowReference.scrollTop = chatWindowReference.scrollHeight;
-            },300); 
+            },300);
         },
         handleMemberStatus: function (received_msg) {
             if(received_msg["action"] == "remove"){
@@ -158,14 +158,16 @@ export default {
         },
         establishWebSocket: function () {
                console.log("connecting....");
-               var ws = new WebSocket("ws://localhost:3000/channel/"+this.senderId+"/"+this.channelName);
+               var serverIP = process.env.VUE_APP_SERVER_URL;
+               var baseURL = "ws://" + serverIP + ":3000";
+               var ws = new WebSocket(baseURL + "/channel/"+this.senderId+"/"+this.channelName);
                this.ws = ws;
                var self = this;
                ws.onopen = function() {
                     self.connectionStatus = 'ESTABLISHING_CONNECTION';
                };
-				
-               ws.onmessage = function (evt) { 
+
+               ws.onmessage = function (evt) {
                   var received_msg = evt.data;
                   received_msg = JSON.parse(received_msg);
                   if(received_msg["status"] != 200){
@@ -186,10 +188,10 @@ export default {
                   }
                   console.log("Message is received..."+received_msg);
                };
-				
+
                ws.onclose = function() {
                   self.connectionStatus = 'NOT_CONNECTED';
-                  console.log("Connection is closed..."); 
+                  console.log("Connection is closed...");
                };
         },
         join: function(){
@@ -201,9 +203,9 @@ export default {
             this.senderId = data.userId;
             var self = this;
             setTimeout(function(){
-                self.$router.push({ 
-                name: 'chatWithAllParams', 
-                params: { 
+                self.$router.push({
+                name: 'chatWithAllParams',
+                params: {
                     channel: self.channelName,
                     userId: data.userId
                 },
@@ -228,7 +230,7 @@ export default {
             let localUser = sessionStorage.getItem("user");
             var params = {
                 channel : this.channelName,
-                softCreate : localUser ? true : false 
+                softCreate : localUser ? true : false
             }
             getChannelInfo(params).then((data)=>{
                 console.log(data);
@@ -289,7 +291,7 @@ export default {
             if(document.body.offsetWidth <= 500){
                 this.device = 'mobile';
             } else if( document.body.offsetWidth < 800){
-                this.device = 'tablet'; 
+                this.device = 'tablet';
             } else {
                 this.device = 'monitor';
             }

@@ -1,5 +1,6 @@
 //const config = process.env
-var baseURL = "http://localhost:3000"
+var serverIP = process.env.VUE_APP_SERVER_URL;
+var baseURL = "http://" + serverIP + ":3000";
 function generateURLwithParams(path,params){
     path = path + "?";
     var paramKeys = Object.keys(params);

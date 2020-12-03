@@ -6,7 +6,6 @@ import VueToast from 'vue-toast-notification';
 import 'vue-toast-notification/dist/theme-default.css';
 import store from './service/store';
 import VueClipboard from 'vue-clipboard2'
- 
 VueClipboard.config.autoSetContainer = true // add this line
 Vue.use(VueClipboard)
 Vue.use(VueToast,{
